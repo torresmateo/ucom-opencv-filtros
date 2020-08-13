@@ -2,11 +2,25 @@ import cv2 as cv
 import imageio
 import os
 from utils import agregar_imagen
+from filtro import Filtro
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 image_dir = os.path.join(script_dir, 'imagenes')
 
-mascara = imageio.imread(os.path.join(image_dir,"stormtrooper-ojos-transparentes.png"))
+mascara = os.path.join(image_dir,"stormtrooper-ojos-transparentes.png")
+mascara2 = os.path.join(image_dir,"stormtrooper.png")
+
+filtros = [Filtro(mascara, 100, 115, 105), 
+           Filtro(mascara2, 100, 115, 105)]
+
+haar_cascade_file = os.path.join(script_dir, 
+                                 'modelos', 
+                                 'haarcascade_frontalface_default.xml')
+detector_caras = cv.CascadeClassifier(haar_cascade_file)
+
+
+
+        
 
 # capturar imagen desde la webcam
 cap = cv.VideoCapture(0)
@@ -15,8 +29,21 @@ while True:
     ret, img = cap.read() # leer la webcam
     img = cv.flip( img, 1 ) # flip horizontal para que sea un espejo
     
-    agregar_imagen(img, mascara, 200, 200)
-
+    # convertir el frame a escala de grises
+    img_gris = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+    
+    # detectar las caras
+    caras = detector_caras.detectMultiScale(img_gris, 1.3, 5)
+    
+    # ordenar las caras con respecto al eje X, de tal manera a mantener un 
+    # "estado" que se pueda asociar a cada cara
+    # if len(caras) > 1: # se detectaron múltiples caras
+    #    caras = caras[caras[0,:].argsort()]
+    
+    for i, (x, y, w, h) in enumerate(caras):
+        filtros[i].agregar_a_imagen(img, x, y, w, h)
+        cv.rectangle(img,(x,y), (x+w, y+h), (255,0,0))
+    
     cv.imshow('Ttulo de la ventana', img)
 
     k = cv.waitKey(30)
