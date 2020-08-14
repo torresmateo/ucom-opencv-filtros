@@ -11,6 +11,7 @@ mascara = os.path.join(image_dir,"stormtrooper-ojos-transparentes.png")
 mascara2 = os.path.join(image_dir,"stormtrooper.png")
 
 filtros = [Filtro(mascara, 100, 115, 105), 
+           Filtro(mascara2, 100, 115, 105),
            Filtro(mascara2, 100, 115, 105)]
 
 haar_cascade_file = os.path.join(script_dir, 
