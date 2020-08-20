@@ -57,3 +57,15 @@ def agregar_imagen(fondo, imagen, x, y):
     else: # asumir que la cantidad de canales es 1
         imagen_3_canales = cv.cvtColor(imagen_cortada, cv.COLOR_GRAY2RGB)
         fondo[y:y+alto, x:x+ancho, :] = imagen_3_canales
+
+
+def calcular_margenes(x,y,w,h,MARGEN_X, MARGEN_Y):
+    pad_w = int(w * MARGEN_X)
+    pad_h = int(h * MARGEN_Y)
+
+    x_pad = x - pad_w
+    y_pad = y - pad_h
+    w_pad = w + 2*pad_w
+    h_pad = h + 2*pad_h
+
+    return (x_pad, y_pad, w_pad, h_pad)
