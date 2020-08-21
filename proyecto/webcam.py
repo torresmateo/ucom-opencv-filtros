@@ -12,9 +12,11 @@ image_dir = os.path.join(script_dir, 'imagenes')
 mascara = os.path.join(image_dir,"stormtrooper-ojos-transparentes.png")
 mascara2 = os.path.join(image_dir,"stormtrooper.png")
 
-filtros = [Filtro(mascara, np.array([179, 225]), np.array([325, 324])), 
-           Filtro(mascara2, np.array([179, 225]), np.array([325, 224])),
-           Filtro(mascara2, np.array([179, 225]), np.array([325, 224]))]
+filtros = [Filtro(mascara, np.array([325, 224]), np.array([179, 225])), 
+           Filtro(mascara2, np.array([325, 224]), np.array([179, 225])),
+           Filtro(mascara2, np.array([325, 224]), np.array([179, 225])),
+           Filtro(mascara2, np.array([325, 224]), np.array([179, 225])),
+           ]
 
 haar_cascade_file = os.path.join(script_dir, 
                                  'modelos', 
@@ -75,13 +77,13 @@ while True:
         
         keypoints_original = keypoints.copy()
         keypoints_original[:,0] = keypoints_original[:,0] * factor_cara_x + x_cara
-        keypoints_original[:,1] = keypoints_original[:,1] * factor_cara_x + x_cara
+        keypoints_original[:,1] = keypoints_original[:,1] * factor_cara_y + y_cara
+        keypoints_original = keypoints_original.astype(np.int32)
         for j in range(2): # lo equivalente a los centros de los ojos
             c = tuple(keypoints[j] + np.array([20, 150]))
-            c_original = (int(keypoints[j][0] * factor_cara_x + x_cara),
-                          int(keypoints[j][1] * factor_cara_y + y_cara))
+            c_original = tuple(keypoints_original[j])
             cv.circle(img, c, 2, (0,255,0))
-            cv.circle(img, c_original, 2, (0,255,0))
+            cv.circle(img, c_original, 4, (0,0,255), -1)
         
 
         x_pad, y_pad, w_pad, h_pad = calcular_margenes(x, y, w, h, 
@@ -89,7 +91,7 @@ while True:
                                                        AGREGAR_Y_PORCENTAJE)
 
         # AGREGAR EL FILTRO A LA CARA
-        filtros[i].agregar_a_imagen(img, x_pad, y_pad, w_pad, h_pad)
+        #filtros[i].agregar_a_imagen(img, x_pad, y_pad, w_pad, h_pad)
         filtros[i].agregar_a_imagen_kp(img, keypoints_original)
         
         cv.rectangle(img,(x,y), (x+w, y+h), (255,0,0)) # la cara detectada

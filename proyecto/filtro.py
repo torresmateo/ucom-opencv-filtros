@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 import os
 import imageio
-from utils import agregar_imagen
+from utils import agregar_imagen, rotate_bound
 
 class Filtro(object):
     
@@ -30,8 +30,11 @@ class Filtro(object):
         self.h, self.w = self.imagen.shape[:2]
         self.aspect_ratio = self.w / self.h
         
-        self.ojo_izq = ojo_izq
-        self.ojo_der = ojo_der
+        self.ojo_izq = ojo_izq - np.array([pos_i_x, pos_i_y])
+        self.ojo_der = ojo_der - np.array([pos_i_x, pos_i_y])
+        self.pendiente = (np.abs(self.ojo_izq[1] - self.ojo_der[1]) /
+                          np.abs(self.ojo_izq[0] - self.ojo_der[0]))
+        self.angulo = np.arctan(self.pendiente)
         self.distancia_ojos = np.linalg.norm(self.ojo_izq - self.ojo_der)
 
     def agregar_a_imagen(self, img, x, y, w, h):
@@ -61,25 +64,28 @@ class Filtro(object):
         """
         ojo_izq = keypoints[0]
         ojo_der = keypoints[1]
-        
-        # distancia de los ojos en la imagen original
-        # calcular la escala
-        distancia_original = np.linalg.norm(ojo_izq - ojo_der)
-        
-        diff_distancias = distancia_original - self.distancia_ojos
-        
-        nueva_pos_izq = ojo_izq
-        nueva_pos_der = self.ojo_der + diff_distancias
 
-        # calcular el ángulo
-        B = ojo_der - ojo_izq # para usar el ojo izq como origen
-        B = B/np.linalg.norm(B) # normalizar
-        B_p = self.ojo_der - self.ojo_izq
-        B_p = B_p/np.linalg.norm(B_p) # normalizar
-        angulo = np.arccos(np.dot(B, B_p) / np.linalg.norm(B) * np.linalg.norm(B_p))
-        rot_mat = cv.getRotationMatrix2D(tuple(self.ojo_izq), angulo, 1)
-        result = cv.warpAffine(self.imagen, rot_mat, self.imagen.shape[1::-1], flags=cv.INTER_LINEAR)
-        agregar_imagen(img, result, 400, 200)
+        pendiente = (np.abs(ojo_izq[1] - ojo_der[1]) /
+                     np.abs(ojo_izq[0] - ojo_der[0]))
+        angulo_fondo = np.arctan(pendiente)
+        delta_angulos = np.degrees(self.angulo - angulo_fondo)
+
+        imagen = self.imagen.copy()
+        imagen = cv.circle(imagen, tuple(self.ojo_izq), 4, (255,0,0), -1)
+        imagen = cv.circle(imagen, tuple(self.ojo_der), 4, (0,255,0), -1)
+        # rotacion
+        img_rotada, M = rotate_bound(imagen, delta_angulos)
+        ojo_ir = np.squeeze(cv.transform(self.ojo_izq.reshape(1,1,-1), M))
+        ojo_dr = np.squeeze(cv.transform(self.ojo_der.reshape(1,1,-1), M))
+        # escalamiento
+        dis_fondo = np.linalg.norm(ojo_izq - ojo_der)
+        ratio = dis_fondo / self.distancia_ojos
+        img_escalada = cv.resize(img_rotada, None, fx=ratio, fy=ratio,
+                                 interpolation=cv.INTER_CUBIC)
+        # translación
+        posicion_filtro = (ojo_izq - ojo_ir * ratio).astype(np.int32)
+        agregar_imagen(img, img_escalada, 
+                       posicion_filtro[0], posicion_filtro[1])
         # EXPLICACION
         # calcular el angulo y la escala entre dos puntos en el filtro 
         # y alinear a ojo_izq y ojo_der
